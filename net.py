@@ -18,16 +18,17 @@ device = '/gpu:0'
 class GAN:
 
   def __init__(self, cfg, restore=False):
-    sess_config = tf.ConfigProto(allow_soft_placement=True)
+    sess_config = tf.ConfigProto(allow_soft_placement=True)  # 如果你指定的设备不存在，允许TF自动分配设备
+    # 使用allow_growth option，刚一开始分配少量的GPU容量，然后按需慢慢的增加，由于不会释放内存，所以会导致碎片
     sess_config.gpu_options.allow_growth = True
-    sess_config.gpu_options.per_process_gpu_memory_fraction = 0.4
+    sess_config.gpu_options.per_process_gpu_memory_fraction = 0.4  # 设置每个GPU应该拿出多少容量给进程使用，0.4代表 40%
     self.sess = tf.Session(config=sess_config)
     self.cfg = cfg
-    assert cfg.gan == 'ls' or cfg.gan == 'w'
-    self.dir = os.path.join('models', cfg.name)
+    assert cfg.gan == 'ls' or cfg.gan == 'w'  # lsgan or wgan
+    self.dir = os.path.join('models', cfg.name)  # model/example/test
     self.image_dir = os.path.join(self.dir,
-                                  'images-' + cfg.name.replace('/', '-'))
-    self.dump_dir = os.path.join(self.dir, 'dump-' + cfg.name.replace('/', '-'))
+                                  'images-' + cfg.name.replace('/', '-'))  # model/example/test/images-example-test
+    self.dump_dir = os.path.join(self.dir, 'dump-' + cfg.name.replace('/', '-'))  # model/example/test/dump-example-test
     if not os.path.exists(self.dir):
       os.makedirs(self.dir)
     if not os.path.exists(self.dump_dir):
@@ -36,8 +37,8 @@ class GAN:
       os.makedirs(self.image_dir)
 
     if not restore:
-      self.backup_scripts()
-      self.tee = Tee(os.path.join(self.dir, 'log.txt'))
+      self.backup_scripts()  # back up all the python scripts
+      self.tee = Tee(os.path.join(self.dir, 'log.txt')) # log file
 
     self.is_train = tf.placeholder(tf.int32, shape=[], name='is_train')
     self.is_training = tf.equal(self.is_train, 1)
