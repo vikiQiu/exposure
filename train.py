@@ -9,7 +9,7 @@ from net import GAN
 def main():
   config_name = sys.argv[1]
   cfg = load_config(config_name)
-  cfg.name = sys.argv[1] + '/' + sys.argv[2]
+  cfg.name = sys.argv[1] + '/' + sys.argv[2] # example/test
   net = GAN(cfg, restore=False)
   net.train()
 
