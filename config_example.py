@@ -143,13 +143,13 @@ critic_lr_mul = 1
 
 
 def g_lr_callback(t):
-  return generator_lr_mul * base_lr * lr_decay**(
-      1.0 * t * segments / cfg.max_iter_step)
+    return generator_lr_mul * base_lr * lr_decay**(
+            1.0 * t * segments / cfg.max_iter_step)
 
 
 def c_lr_callback(t):
-  return critic_lr_mul * base_lr * lr_decay**(
-      1.0 * t * segments / cfg.max_iter_step)
+    return critic_lr_mul * base_lr * lr_decay**(
+            1.0 * t * segments / cfg.max_iter_step)
 
 
 cfg.lr_g = g_lr_callback

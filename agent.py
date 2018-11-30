@@ -39,7 +39,7 @@ def feature_extractor(net, output_dim, cfg):
 
 # Output: float \in [0, 1]
 def agent_generator(inp, is_train, progress, cfg, high_res=None, alex_in=None):
-  net, z, states = inp
+  net, z, states = inp  # input. net <- images;
   filters = cfg.filters
 
   filters = [x(net, cfg) for x in filters]
