@@ -66,6 +66,7 @@ class GAN:
             self.memory.fake_output = self.fake_output
 
         print(cfg.critic)
+        '''Critic Network (Discriminator)'''
         self.real_logit, self.real_embeddings, self.test_real_gradients = cfg.critic(
             images=self.real_data, cfg=cfg, is_train=self.is_training)
         self.fake_logit, self.fake_embeddings, self.test_fake_gradients = cfg.critic(
@@ -74,6 +75,7 @@ class GAN:
             images=self.fake_input, cfg=cfg, reuse=True, is_train=self.is_training)
         print('real_logit', self.real_logit.shape)
 
+        '''Calculate old value and new value'''
         with tf.variable_scope('rl_value'):
             print('self.states', self.states.shape)
             print('self.new_states', self.new_states.shape)
@@ -306,7 +308,7 @@ class GAN:
         cgn = 0
 
         for iter in range(self.cfg.max_iter_step + 1):
-            progress = float(iter) / self.cfg.max_iter_step
+            progress = float(iter) / self.cfg.max_iter_step  # 当前iter的进度
             iter_start_time = time.time()
             run_options = tf.RunOptions()
             run_metadata = tf.RunMetadata()
@@ -314,13 +316,13 @@ class GAN:
                                         iter % 500 == 0):
                 citers = 100  # critic iter
             else:
-                citers = self.cfg.citers
+                citers = self.cfg.citers  # 5 as default
 
             if iter == 0:
                 # Make sure there are terminating states
                 giters = 100
             else:
-                giters = self.cfg.giters  # generator iter
+                giters = self.cfg.giters  # generator iter, 1 as default
 
             # Update generator actor/critic
             for j in range(giters):

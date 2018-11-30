@@ -63,6 +63,8 @@ class ReplayMemory:
 
     def fill_pool(self):
         while len(self.image_pool) < self.target_pool_size:
+            # features: np.zeros((batch_size,))
+            # batch: Images with data augment and resize
             batch, features = self.fake_dataset.get_next_batch(self.cfg.batch_size)
             for i in range(len(batch)):
                 self.image_pool.append(
@@ -124,7 +126,7 @@ class ReplayMemory:
         if self.cfg.supervised:
             images, ground_truth = images[:, 0], images[:, 1]
         else:
-            ground_truth = self.get_dummy_ground_truth(batch_size)
+            ground_truth = self.get_dummy_ground_truth(batch_size)  # all zeros
         tmp_real_data, tmp_real_features = self.real_dataset.get_next_batch(
             batch_size)
         return {
