@@ -312,7 +312,7 @@ class GAN:
             iter_start_time = time.time()
             run_options = tf.RunOptions()
             run_metadata = tf.RunMetadata()
-            if self.cfg.gan == 'w' and (iter < self.cfg.critic_initialization or
+            if self.cfg.gan == 'w' and (iter < self.cfg.critic_initialization or  # critic_initialization = 10
                                         iter % 500 == 0):
                 citers = 100  # critic iter
             else:
@@ -376,7 +376,7 @@ class GAN:
             if self.cfg.realtime_vis or iter % self.cfg.write_image_interval == 0:
                 self.visualize(iter)
 
-            v_loss_pool = v_loss_pool[-self.cfg.median_filter_size:]
+            v_loss_pool = v_loss_pool[-self.cfg.median_filter_size:]  # cfg.median_filter_size = 101
             g_loss_pool = g_loss_pool[-self.cfg.median_filter_size:]
             emd_pool = emd_pool[-self.cfg.median_filter_size:]
 
@@ -727,7 +727,9 @@ class GAN:
 
         # Use a fixed noise
         batch_size = 1
+        time_used = []
         for fn in spec_files:
+            pic_start_time = time.time()
             print('Processing input {}'.format(fn))
 
             from util import read_tiff16, linearize_ProPhotoRGB
@@ -878,3 +880,8 @@ class GAN:
 
             # Save steps
             show_and_save('steps', fused)
+            t = time.time() - pic_start_time
+            print('Processing image {} uses {:.2f}s.'.format(fn, t))
+            time_used.append(t)
+
+        print('Cost {:.2f}s to process each image.'.format(np.mean(time_used)))

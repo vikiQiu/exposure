@@ -40,6 +40,20 @@ def cnn(net, is_train, cfg):
 
 # Input: float \in [0, 1]
 def critic(images, cfg, states=None, is_train=None, reuse=False):
+    '''
+    Critic Network
+    Input:
+        images
+        luminance feature plane
+        contrast feature plane
+        saturation feature plane
+    :param images:
+    :param cfg:
+    :param states:
+    :param is_train:
+    :param reuse:
+    :return:
+    '''
     with tf.variable_scope('critic') as scope:
         if reuse:
             scope.reuse_variables()
