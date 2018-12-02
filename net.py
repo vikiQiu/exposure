@@ -886,11 +886,11 @@ class GAN:
             show_and_save('steps', fused)
             end_time = time.time()
             t = end_time - pic_start_time
-            print('Processing image {} uses {:.2f}s. Decision uses {:.2f}s. Retouch uses{:.2f}s.'
-                  .format(fn, t, start_retouch - start_decision, end_time - start_retouch))
+            print('Processing image {} uses {:.2f}ms. Decision uses {:.2f}ms. Retouch uses{:.2f}ms.'
+                  .format(fn, t*1000, (start_retouch - start_decision)*1000, (end_time - start_retouch)*1000))
             time_used.append(t)
             retouch_time.append(end_time - start_retouch)
             decision_time.append(start_retouch - start_decision)
 
-        print('Cost {:.2f}s to process each image. Decision uses {:.2f}s. Retouch uses{:.2f}s.'
-              .format(np.mean(time_used), np.mean(decision_time), np.mean(retouch_time)))
+        print('Cost {:.2f}ms to process each image. Decision uses {:.2f}ms. Retouch uses{:.2f}ms.'
+              .format(np.mean(time_used)*1000, np.mean(decision_time)*1000, np.mean(retouch_time)*1000))
