@@ -728,6 +728,8 @@ class GAN:
         # Use a fixed noise
         batch_size = 1
         time_used = []
+        decision_time = []
+        retouch_time = []
         for fn in spec_files:
             pic_start_time = time.time()
             print('Processing input {}'.format(fn))
@@ -798,6 +800,7 @@ class GAN:
             tmp_fake_input = np.array(tmp_fake_input)
             print(tmp_fake_input.shape)
 
+            start_decision = time.time()
             for i in range(self.cfg.test_steps):
                 feed_dict = {
                     net.fake_input: low_res_images * batch_size,
@@ -854,6 +857,7 @@ class GAN:
 
             fused = np.ones(shape=(grid * 4, grid * steps, 3), dtype=np.float32)
 
+            start_retouch = time.time()
             for i in range(len(low_res_img_trajs)):
                 sx = grid * i
                 sy = 0
@@ -880,8 +884,13 @@ class GAN:
 
             # Save steps
             show_and_save('steps', fused)
-            t = time.time() - pic_start_time
-            print('Processing image {} uses {:.2f}s.'.format(fn, t))
+            end_time = time.time()
+            t = end_time - pic_start_time
+            print('Processing image {} uses {:.2f}s. Decision uses {:.2f}s. Retouch uses{:.2f}s.'
+                  .format(fn, t, start_retouch - start_decision, end_time - start_retouch))
             time_used.append(t)
+            retouch_time.append(end_time - start_retouch)
+            decision_time.append(start_retouch - start_decision)
 
-        print('Cost {:.2f}s to process each image.'.format(np.mean(time_used)))
+        print('Cost {:.2f}s to process each image. Decision uses {:.2f}s. Retouch uses{:.2f}s.'
+              .format(np.mean(time_used), np.mean(decision_time), np.mean(retouch_time)))
