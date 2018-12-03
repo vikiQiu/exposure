@@ -1,13 +1,14 @@
 import sys
 import os
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
-from net import GAN
 from util import load_config
 from util import load_config, GPU
 
 gpu = GPU().choose_gpu()
 print('Using the automatically choosed GPU %s' % gpu)
 os.environ["CUDA_VISIBLE_DEVICES"] = gpu
+
+from net import GAN
 
 
 def evaluate():

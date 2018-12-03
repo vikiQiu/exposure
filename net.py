@@ -800,31 +800,20 @@ class GAN:
 
             start_decision = time.time()
             for i in range(self.cfg.test_steps):
-                # feed_dict = {
-                #     net.fake_input: low_res_images * batch_size,
-                #     net.z: noises[i],
-                #     net.is_train: 0,
-                #     net.states: states,
-                #     net.high_res_input: [high_res_output] * batch_size
-                # }
-                # new_low_res_images, new_scores, new_states, new_high_res_output, debug_info = self.sess.run(
-                #     [
-                #         net.fake_output[0], net.fake_logit[0], net.new_states[0],
-                #         net.high_res_output[0], net.generator_debug_output
-                #     ],
-                #     feed_dict=feed_dict)
-                start_one_decision = time.time()
                 feed_dict = {
                     net.fake_input: low_res_images * batch_size,
                     net.z: noises[i],
                     net.is_train: 0,
-                    net.states: states
+                    net.states: states,
+                    net.high_res_input: [high_res_output] * batch_size
                 }
-                new_low_res_images, new_scores, new_states, debug_info = self.sess.run(
+                new_low_res_images, new_scores, new_states, new_high_res_output, debug_info = self.sess.run(
                     [
-                        net.fake_output[0], net.fake_logit[0], net.new_states[0], net.generator_debug_output
+                        net.fake_output[0], net.fake_logit[0], net.new_states[0],
+                        net.high_res_output[0], net.generator_debug_output
                     ],
                     feed_dict=feed_dict)
+                start_one_decision = time.time()
                 low_res_img_trajs.append(new_low_res_images)
                 low_res_images = [new_low_res_images]
                 # print('new_states', new_states.shape)
@@ -834,11 +823,11 @@ class GAN:
                 decisions.append(debug_plots[0])
                 operations.append(debug_plots[1])
                 masks.append(debug_plots[2])
-                # high_res_output = new_high_res_output
+                high_res_output = new_high_res_output
                 if states[0][STATE_STOPPED_DIM] > 0:
                     break
-                # if step_by_step:
-                #     show_and_save('intermediate%02d' % i, high_res_output)
+                if step_by_step:
+                    show_and_save('intermediate%02d' % i, high_res_output)
                 t = time.time() - start_one_decision
                 one_decision_time.append(t)
 
@@ -910,3 +899,163 @@ class GAN:
               'On average one decision costs {:.2f}ms'
               .format(np.mean(time_used)*1000, np.mean(decision_time)*1000, np.mean(retouch_time)*1000,
                       np.mean(one_decision_time) * 1000))
+
+    def quick_eval(self,
+                   spec_files=None,
+                   output_dir='./outputs',
+                   step_by_step=False,
+                   show_linear=True,
+                   show_input=True):
+        from util import get_image_center
+        if output_dir is not None:
+            try:
+                os.mkdir(output_dir)
+            except:
+                pass
+        print(spec_files)
+
+        # Use a fixed noise
+        batch_size = 1
+        time_used, decision_time, preprocess_time, no_high_time, with_high_time = [], [], [], [], []
+        for fn in spec_files:
+            pic_start_time = time.time()
+            print('Processing input {}'.format(fn))
+
+            from util import read_tiff16, linearize_ProPhotoRGB
+            start_preprocess = time.time()
+            if fn.endswith('.tif') or fn.endswith('.tiff'):
+                image = read_tiff16(fn)
+                high_res_image = linearize_ProPhotoRGB(image)
+            else:
+                # TODO: deal with png and jpeg files better - they are probably not RAW.
+                print(
+                    'Warning: sRGB color space jpg and png images may not work perfectly. See README for details. (image {})'.
+                        format(fn))
+                image = cv2.imread(fn)[:, :, ::-1]
+                if image.dtype == np.uint8:
+                    image = image / 255.0
+                elif image.dtype == np.uint16:
+                    image = image / 65535.0
+                elif image.dtype != np.float32 and image.dtype != np.float64:
+                    print('image data type {} is not supported. Please email Yuanming Hu.'.format(image.dtype))
+                high_res_image = np.power(image, 2.2)  # Linearize sRGB
+                high_res_image /= 2 * high_res_image.max() # Mimic RAW exposure
+
+                # Uncomment to bypass preprocessing
+                # high_res_image = image
+
+            noises = [
+                self.memory.get_noise(batch_size) for _ in range(self.cfg.test_steps)
+            ]
+            fn = fn.split('/')[-1]
+
+            def get_dir():
+                if output_dir is not None:
+                    d = output_dir
+                else:
+                    d = self.dump_dir
+                return d
+
+            try:
+                os.mkdir(get_dir())
+            except:
+                pass
+
+            def show_and_save(x, img):
+                img = img[:, :, ::-1]
+                #cv2.imshow(x, img)
+                cv2.imwrite(os.path.join(get_dir(), fn + '.' + x + '.png'), img * 255.0)
+
+            #if os.path.exists(os.path.join(get_dir(), fn + '.retouched.png')):
+            #    print('Skipping', fn)
+            #    continue
+
+            high_res_input = high_res_image
+            low_res_img = cv2.resize(get_image_center(high_res_image), dsize=(64, 64))
+            res = high_res_input.shape[:2]
+            net = self.get_high_resolution_net(res)
+
+            low_res_img_trajs = [low_res_img]
+            low_res_images = [low_res_img]
+            states = self.memory.get_initial_states(batch_size)
+            high_res_output = high_res_input
+            masks = []
+            decisions = []
+            operations = []
+            debug_info_list = []
+
+            tmp_fake_input = low_res_images * batch_size
+            tmp_fake_input = np.array(tmp_fake_input)
+            print(tmp_fake_input.shape)
+
+            start_decision = time.time()
+            for i in range(self.cfg.test_steps):
+                feed_dict = {
+                    net.fake_input: low_res_images * batch_size,
+                    net.z: noises[i],
+                    net.is_train: 0,
+                    net.states: states,
+                    net.high_res_input: [high_res_output] * batch_size
+                }
+                t1 = time.time()
+                new_low_res_images, new_scores, new_states, debug_info = self.sess.run(
+                    [
+                        net.fake_output[0], net.fake_logit[0], net.new_states[0], net.generator_debug_output
+                    ],
+                    feed_dict=feed_dict)
+                t2 = time.time()
+                new_low_res_images, new_scores, new_states, new_high_res_output, debug_info = self.sess.run(
+                    [
+                        net.fake_output[0], net.fake_logit[0], net.new_states[0],
+                        net.high_res_output[0], net.generator_debug_output
+                    ],
+                    feed_dict=feed_dict)
+                t3 = time.time()
+                start_one_decision = time.time()
+                low_res_img_trajs.append(new_low_res_images)
+                low_res_images = [new_low_res_images]
+                # print('new_states', new_states.shape)
+                states = [new_states] * batch_size
+                debug_info_list.append(debug_info)
+                debug_plots = self.generator_debugger(debug_info, combined=False)
+                decisions.append(debug_plots[0])
+                operations.append(debug_plots[1])
+                masks.append(debug_plots[2])
+                high_res_output = new_high_res_output
+                if states[0][STATE_STOPPED_DIM] > 0:
+                    break
+                # if step_by_step:
+                #     show_and_save('intermediate%02d' % i, high_res_output)
+                t = time.time() - start_one_decision
+                no_high_time.append(t2-t1)
+                with_high_time.append(t3-t1)
+
+            linear_high_res = high_res_input
+
+            # Max to white, and then gamma correction
+            high_res_input = (high_res_input / high_res_input.max())**(1 / 2.4)
+
+            # Save linear
+            if show_linear:
+                show_and_save('linear', linear_high_res)
+
+            # Save corrected
+            if show_input:
+                show_and_save('input_tone_mapped', high_res_input)
+
+            # Save retouched
+            show_and_save('retouched', high_res_output)
+
+            end_time = time.time()
+            t = end_time - pic_start_time
+            print('Processing image {} uses {:.2f}ms. Decision uses {:.2f}ms'
+                  'On average without high_rest costs {:.2f}ms; On average with high_rest costs {:.2f}ms'
+                  .format(fn, t*1000, (end_time - start_decision)*1000,
+                          np.mean(no_high_time)*1000, np.mean(with_high_time)*1000))
+            time_used.append(t)
+            decision_time.append(end_time - start_decision)
+
+        print('Cost {:.2f}ms to process each image. Decision uses {:.2f}ms'
+              'On average without high_rest costs {:.2f}ms; On average with high_rest costs {:.2f}ms'
+              .format(np.mean(time_used)*1000, np.mean(decision_time)*1000,
+                      np.mean(no_high_time) * 1000, np.mean(with_high_time) * 1000))
