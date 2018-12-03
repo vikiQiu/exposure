@@ -727,9 +727,7 @@ class GAN:
 
         # Use a fixed noise
         batch_size = 1
-        time_used = []
-        decision_time = []
-        retouch_time = []
+        time_used, decision_time, retouch_time, one_decision_time = [], [], [], []
         for fn in spec_files:
             pic_start_time = time.time()
             print('Processing input {}'.format(fn))
@@ -802,17 +800,29 @@ class GAN:
 
             start_decision = time.time()
             for i in range(self.cfg.test_steps):
+                # feed_dict = {
+                #     net.fake_input: low_res_images * batch_size,
+                #     net.z: noises[i],
+                #     net.is_train: 0,
+                #     net.states: states,
+                #     net.high_res_input: [high_res_output] * batch_size
+                # }
+                # new_low_res_images, new_scores, new_states, new_high_res_output, debug_info = self.sess.run(
+                #     [
+                #         net.fake_output[0], net.fake_logit[0], net.new_states[0],
+                #         net.high_res_output[0], net.generator_debug_output
+                #     ],
+                #     feed_dict=feed_dict)
+                start_one_decision = time.time()
                 feed_dict = {
                     net.fake_input: low_res_images * batch_size,
                     net.z: noises[i],
                     net.is_train: 0,
-                    net.states: states,
-                    net.high_res_input: [high_res_output] * batch_size
+                    net.states: states
                 }
-                new_low_res_images, new_scores, new_states, new_high_res_output, debug_info = self.sess.run(
+                new_low_res_images, new_scores, new_states, debug_info = self.sess.run(
                     [
-                        net.fake_output[0], net.fake_logit[0], net.new_states[0],
-                        net.high_res_output[0], net.generator_debug_output
+                        net.fake_output[0], net.fake_logit[0], net.new_states[0], net.generator_debug_output
                     ],
                     feed_dict=feed_dict)
                 low_res_img_trajs.append(new_low_res_images)
@@ -824,11 +834,13 @@ class GAN:
                 decisions.append(debug_plots[0])
                 operations.append(debug_plots[1])
                 masks.append(debug_plots[2])
-                high_res_output = new_high_res_output
+                # high_res_output = new_high_res_output
                 if states[0][STATE_STOPPED_DIM] > 0:
                     break
-                if step_by_step:
-                    show_and_save('intermediate%02d' % i, high_res_output)
+                # if step_by_step:
+                #     show_and_save('intermediate%02d' % i, high_res_output)
+                t = time.time() - start_one_decision
+                one_decision_time.append(t)
 
             linear_high_res = high_res_input
 
@@ -886,11 +898,15 @@ class GAN:
             show_and_save('steps', fused)
             end_time = time.time()
             t = end_time - pic_start_time
-            print('Processing image {} uses {:.2f}ms. Decision uses {:.2f}ms. Retouch uses{:.2f}ms.'
-                  .format(fn, t*1000, (start_retouch - start_decision)*1000, (end_time - start_retouch)*1000))
+            print('Processing image {} uses {:.2f}ms. Decision uses {:.2f}ms. Retouch uses{:.2f}ms. '
+                  'On average one decision costs {:.2f}ms'
+                  .format(fn, t*1000, (start_retouch - start_decision)*1000, (end_time - start_retouch)*1000,
+                          np.mean(one_decision_time)*1000))
             time_used.append(t)
             retouch_time.append(end_time - start_retouch)
             decision_time.append(start_retouch - start_decision)
 
         print('Cost {:.2f}ms to process each image. Decision uses {:.2f}ms. Retouch uses{:.2f}ms.'
-              .format(np.mean(time_used)*1000, np.mean(decision_time)*1000, np.mean(retouch_time)*1000))
+              'On average one decision costs {:.2f}ms'
+              .format(np.mean(time_used)*1000, np.mean(decision_time)*1000, np.mean(retouch_time)*1000,
+                      np.mean(one_decision_time) * 1000))
