@@ -34,7 +34,7 @@ def evaluate():
     net.restore(20000)  # restore the model
     spec_files = sys.argv[3:]
     print('processing files {}', spec_files)
-    net.eval(spec_files=spec_files, step_by_step=True)
+    net.quick_eval(spec_files=spec_files, step_by_step=True)
 
 
 if __name__ == '__main__':
