@@ -998,9 +998,9 @@ class GAN:
                     net.high_res_input: [high_res_output] * batch_size
                 }
                 t1 = time.time()
-                new_low_res_images, new_scores, new_states, debug_info = self.sess.run(
+                new_low_res_images, new_states, new_high_res_output, debug_info = self.sess.run(
                     [
-                        net.fake_output[0], net.fake_logit[0], net.new_states[0], net.generator_debug_output
+                        net.fake_output[0], net.new_states[0], net.high_res_output[0], net.generator_debug_output
                     ],
                     feed_dict=feed_dict)
                 t2 = time.time()
@@ -1028,7 +1028,7 @@ class GAN:
                 #     show_and_save('intermediate%02d' % i, high_res_output)
                 t = time.time() - start_one_decision
                 no_high_time.append(t2-t1)
-                with_high_time.append(t3-t1)
+                with_high_time.append(t3-t2)
 
             linear_high_res = high_res_input
 
@@ -1051,7 +1051,7 @@ class GAN:
             print('Processing image {} uses {:.2f}ms. Decision uses {:.2f}ms'
                   'On average without high_rest costs {:.2f}ms; On average with high_rest costs {:.2f}ms'
                   .format(fn, t*1000, (end_time - start_decision)*1000,
-                          np.mean(no_high_time)*1000, np.mean(with_high_time)*1000))
+                          np.mean(no_high_time[-5:])*1000, np.mean(with_high_time[:-5])*1000))
             time_used.append(t)
             decision_time.append(end_time - start_decision)
 
