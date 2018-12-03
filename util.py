@@ -667,14 +667,21 @@ def test_async_task_manager():
 
 
 class GPU:
-    def __init__(self, sleep=120):
+    def __init__(self, sleep=60):
         self.max_gpu_util = 100
         self.min_men_free = 8000
         self.sleep = sleep
+        self.start_time = time.time()
         return
 
-    def choose_gpu(self):
-        while True:
+    def choose_gpu(self, wait_minute=20):
+        '''
+        Choose an available GPU to use.
+        If there is no free GPU, check every 2 minutes. Then return the GPU number.
+        If there is no free GPU after wait for 20 minutes, return -1.
+        :return: -1 to use CPU; int > 0 to use the GPU.
+        '''
+        while True: # time.time() - self.start_time < wait_minute*60:  # If wait longer than 20 minutes, use cpu.
             id = self.which_to_use()
             if id == -1:
                 print('[%s]Waiting for free gpu... Sleep %ds. ' % (time.ctime(), self.sleep))
@@ -684,6 +691,7 @@ class GPU:
                 print('Using GPU %d' % id)
                 # return
                 return str(id)
+        return str(-1)
 
     def get_gpu_men(self):
         gpu = os.popen('nvidia-smi -q -d Utilization |grep Gpu').readlines()
@@ -695,9 +703,14 @@ class GPU:
 
     def which_to_use(self):
         gpu, men = self.get_gpu_men()
-        idx = [x for x in range(len(gpu)) if (gpu[x] <= self.max_gpu_util) and (men[x] >= self.min_men_free)]
+        idx = [x for x in range(len(gpu)) if (gpu[x] <= self.max_gpu_util/5) and (men[x] >= self.min_men_free)]
         print(idx)
         if len(idx) == 0:
-            return -1
+            idx = [x for x in range(len(gpu)) if (gpu[x] <= self.max_gpu_util) and (men[x] >= self.min_men_free)]
+            print(idx)
+            if len(idx) == 0:
+                return -1
+            else:
+                return idx[np.argmax([men[i] for i in idx])]
         else:
             return idx[np.argmax([men[i] for i in idx])]
