@@ -990,6 +990,7 @@ class GAN:
 
             start_decision = time.time()
             for i in range(self.cfg.test_steps):
+                t1 = time.time()
                 feed_dict = {
                     net.fake_input: low_res_images * batch_size,
                     net.z: noises[i],
@@ -997,17 +998,21 @@ class GAN:
                     net.states: states,
                     net.high_res_input: [high_res_output] * batch_size
                 }
-                t1 = time.time()
                 new_low_res_images, new_states, new_high_res_output, debug_info = self.sess.run(
                     [
                         net.fake_output[0], net.new_states[0], net.high_res_output[0], net.generator_debug_output
                     ],
                     feed_dict=feed_dict)
                 t2 = time.time()
-                new_low_res_images, new_scores, new_states, new_high_res_output, debug_info = self.sess.run(
+                feed_dict = {
+                    net.fake_input: low_res_images * batch_size,
+                    net.z: noises[i],
+                    net.is_train: 0,
+                    net.states: states,
+                }
+                new_low_res_images, new_states, debug_info = self.sess.run(
                     [
-                        net.fake_output[0], net.fake_logit[0], net.new_states[0],
-                        net.high_res_output[0], net.generator_debug_output
+                        net.fake_output[0], net.fake_logit[0], net.new_states[0], net.generator_debug_output
                     ],
                     feed_dict=feed_dict)
                 t3 = time.time()
