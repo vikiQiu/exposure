@@ -1012,7 +1012,7 @@ class GAN:
                 }
                 new_low_res_images, new_states, debug_info = self.sess.run(
                     [
-                        net.fake_output[0], net.fake_logit[0], net.new_states[0], net.generator_debug_output
+                        net.fake_output[0], net.new_states[0], net.generator_debug_output
                     ],
                     feed_dict=feed_dict)
                 t3 = time.time()
