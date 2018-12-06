@@ -39,6 +39,19 @@ def feature_extractor(net, output_dim, cfg):
 
 # Output: float \in [0, 1]
 def agent_generator(inp, is_train, progress, cfg, high_res=None, alex_in=None):
+    '''
+        if high_res is None:
+        return (net, new_states, surrogate, penalty), debug_info, debugger
+    else:
+        return (net, new_states, high_res_output), debug_info, debugger
+    :param inp:
+    :param is_train:
+    :param progress:
+    :param cfg:
+    :param high_res:
+    :param alex_in:
+    :return:
+    '''
     net, z, states = inp  # input. net <- images;
     filters = cfg.filters
 

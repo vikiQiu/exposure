@@ -917,6 +917,7 @@ class GAN:
         # Use a fixed noise
         batch_size = 1
         time_used, decision_time, preprocess_time, no_high_time, with_high_time = [], [], [], [], []
+        old_end_time = time.time()
         for fn in spec_files:
             pic_start_time = time.time()
             print('Processing input {}'.format(fn))
@@ -1004,28 +1005,11 @@ class GAN:
                     ],
                     feed_dict=feed_dict)
                 t2 = time.time()
-                feed_dict = {
-                    net.fake_input: low_res_images * batch_size,
-                    net.z: noises[i],
-                    net.is_train: 0,
-                    net.states: states,
-                }
-                new_low_res_images, new_states, debug_info = self.sess.run(
-                    [
-                        net.fake_output[0], net.fake_logit[0], net.new_states[0], net.generator_debug_output
-                    ],
-                    feed_dict=feed_dict)
                 t3 = time.time()
                 start_one_decision = time.time()
                 low_res_img_trajs.append(new_low_res_images)
                 low_res_images = [new_low_res_images]
-                # print('new_states', new_states.shape)
                 states = [new_states] * batch_size
-                debug_info_list.append(debug_info)
-                debug_plots = self.generator_debugger(debug_info, combined=False)
-                decisions.append(debug_plots[0])
-                operations.append(debug_plots[1])
-                masks.append(debug_plots[2])
                 high_res_output = new_high_res_output
                 if states[0][STATE_STOPPED_DIM] > 0:
                     break
@@ -1053,12 +1037,14 @@ class GAN:
 
             end_time = time.time()
             t = end_time - pic_start_time
-            print('Processing image {} uses {:.2f}ms. Decision uses {:.2f}ms'
-                  'On average without high_rest costs {:.2f}ms; On average with high_rest costs {:.2f}ms'
+            print('Processing image {} uses {:.2f}ms. Decision uses {:.2f}ms. Network uses {:.2}ms. '
+                  'Preprocessing uses {:.2f}ms. Reading data uses {:.2f}ms.'
                   .format(fn, t*1000, (end_time - start_decision)*1000,
-                          np.mean(no_high_time[-5:])*1000, np.mean(with_high_time[:-5])*1000))
+                          np.mean(no_high_time[-5:])*1000, start_decision-start_preprocess*1000,
+                          old_end_time - start_preprocess*1000))
             time_used.append(t)
             decision_time.append(end_time - start_decision)
+            old_end_time = end_time
 
         print('Cost {:.2f}ms to process each image. Decision uses {:.2f}ms'
               'On average without high_rest costs {:.2f}ms; On average with high_rest costs {:.2f}ms'
