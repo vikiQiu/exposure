@@ -1037,11 +1037,11 @@ class GAN:
 
             end_time = time.time()
             t = end_time - pic_start_time
-            print('Processing image {} uses {:.2f}ms. Decision uses {:.2f}ms. Network uses {:.2}ms. '
+            print('Processing image {} uses {:.2f}ms. Decision uses {:.2f}ms. Network uses {:.2f}ms. '
                   'Preprocessing uses {:.2f}ms. Reading data uses {:.2f}ms.'
                   .format(fn, t*1000, (end_time - start_decision)*1000,
-                          np.mean(no_high_time[-5:])*1000, start_decision-start_preprocess*1000,
-                          old_end_time - start_preprocess*1000))
+                          np.mean(no_high_time[-5:])*1000, (start_decision-start_preprocess)*1000,
+                          (old_end_time - start_preprocess)*1000))
             time_used.append(t)
             decision_time.append(end_time - start_decision)
             old_end_time = end_time
