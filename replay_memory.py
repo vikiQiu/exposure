@@ -243,9 +243,10 @@ class ReplayMemory:
             if record.state[STATE_STOPPED_DIM] != 1:
                 # We avoid adding any finished images here.
                 batch.append(record)
+        # images is ndarray [batch_size, h, w, c]; states is ndarray [batch_size, 11(filter number + 1 step info)]
         images, states = self.records_to_images_and_states(batch)
         features = [x.feature for x in batch]
-        features = np.stack(features, axis=0)
+        features = np.stack(features, axis=0)  # features is ndarray [batch_size, 1]
         return images, states, features
 
     # We choose terminated states only

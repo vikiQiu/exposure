@@ -33,7 +33,7 @@ def feature_extractor(net, output_dim, cfg):
         print('    ', str(net.get_shape()))
     print('before fc: ', net.get_shape()[1])
     net = tf.reshape(net, [-1, output_dim])
-    net = tf.nn.dropout(net, cfg.dropout_keep_prob)
+    net = tf.nn.dropout(net, cfg.dropout_keep_prob)  # dropout = 0.5
     return net
 
 
@@ -261,8 +261,7 @@ def agent_generator(inp, is_train, progress, cfg, high_res=None, alex_in=None):
     # Will be substracted from award
     penalty = tf.reduce_mean(
         tf.maximum(net - 1, 0)**2, axis=(1, 2, 3)
-    )[:,
-              None] + entropy_penalty + usage_penalty * cfg.filter_usage_penalty + early_stop_penalty
+    )[:, None] + entropy_penalty + usage_penalty * cfg.filter_usage_penalty + early_stop_penalty
 
     print('states, new_states:', states.shape, new_states.shape)
     print('penalty:', penalty.shape)

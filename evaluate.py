@@ -4,9 +4,9 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 from util import load_config
 from util import load_config, GPU
 
-gpu = GPU().choose_gpu()
-print('Using the automatically choosed GPU %s' % gpu)
-os.environ["CUDA_VISIBLE_DEVICES"] = gpu
+# gpu = GPU().choose_gpu()
+# print('Using the automatically choosed GPU %s' % gpu)
+# os.environ["CUDA_VISIBLE_DEVICES"] = gpu
 
 from net import GAN
 
@@ -21,7 +21,7 @@ def evaluate():
         print(
             " Note: Process a single image at a time may be inefficient - try multiple inputs)"
         )
-    print("(TODO: batch processing when images have the same resolution)")
+    print("(TODO: batch pro cessing when images have the same resolution)")
     print()
     print("Initializing...")
     config_name = sys.argv[1]
@@ -33,8 +33,9 @@ def evaluate():
     net = GAN(cfg, restore=True)
     net.restore(20000)  # restore the model
     spec_files = sys.argv[3:]
+    file_dir = sys.argv[3]
     print('processing files {}', spec_files)
-    net.quick_eval(spec_files=spec_files, step_by_step=True)
+    net.eval_on_mit5k_small(file_dir=file_dir, step_by_step=False)
 
 
 if __name__ == '__main__':

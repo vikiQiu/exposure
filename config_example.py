@@ -115,7 +115,7 @@ cfg.z_dim_per_filter = 16
 
 cfg.num_state_dim = 3 + len(cfg.filters)
 cfg.z_dim = 3 + len(cfg.filters) * cfg.z_dim_per_filter
-cfg.test_steps = 5
+cfg.test_steps = 1 # 5
 
 cfg.real_img_size = 64
 cfg.real_img_channels = 1 if cfg.bnw else 3
